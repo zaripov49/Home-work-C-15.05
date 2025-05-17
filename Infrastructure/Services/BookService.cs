@@ -45,7 +45,7 @@ public class BookService : IBookService
             connection.Open();
 
             string cmd = $@"Select * from Books Where id = @id";
-            var result = await connection.QueryFirstOrDefaultAsync<Books>(cmd, new {id = id});
+            var result = await connection.QueryFirstOrDefaultAsync<Books>(cmd, new { id = id });
             return result;
         }
     }
@@ -74,7 +74,7 @@ public class BookService : IBookService
             connection.Open();
 
             string cmd = $@"Delete from Books Where id = @id";
-            var result = await connection.ExecuteAsync(cmd, new {id = id});
+            var result = await connection.ExecuteAsync(cmd, new { id = id });
             if (result > 0)
             {
                 return "Deleted Book successfully";
@@ -83,4 +83,55 @@ public class BookService : IBookService
         }
     }
 
+    public async Task<Books?> GetBookMaxCountAvailableCopiesAsync()
+    {
+        using (var connection = await context.GetConnectionAsync())
+        {
+            connection.Open();
+
+            string cmd = "Select * from Books Order By AvailableCopies desc Limit 1";
+            var result = await connection.QuerySingleOrDefaultAsync<Books>(cmd);
+            return result;
+        }
+    }
+
+    public async Task<List<Books>> GetAllBooksReturnDateIsNullAsync()
+    {
+        using (var connection = await context.GetConnectionAsync())
+        {
+            connection.Open();
+
+            string cmd = @"Select * from Books as b
+                        Join Borrowings br on b.id = br.BookId
+                        Where ReturnDate is null";
+            var result = await connection.QueryAsync<Books>(cmd);
+            return result.ToList();
+        }
+    }
+
+    public async Task<List<Books>> GetBooksOneCountAvailableCopiesAsync()
+    {
+        using (var connection = await context.GetConnectionAsync())
+        {
+            connection.Open();
+
+            string cmd = @"Select * from Books Where TotalCopies < 2";
+            var result = await connection.QueryAsync<Books>(cmd);
+            return result.ToList();
+        }
+    }
+
+    public async Task<int> GetCountIdOneAsync()
+    {
+        using (var connection = await context.GetConnectionAsync())
+        {
+            connection.Open();
+
+            string cmd = @"select count(*) from Books
+                            where id not in (
+	                        select BookId from Borrowings)";
+            var result = await connection.ExecuteScalarAsync<int>(cmd);
+            return result;
+        }
+    }
 }

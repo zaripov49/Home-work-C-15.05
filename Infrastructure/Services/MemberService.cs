@@ -45,7 +45,7 @@ public class MemberService : IMemberService
             connection.Open();
 
             string cmd = $@"Select * from Members Where id = @id";
-            var result = await connection.QueryFirstOrDefaultAsync<Members>(cmd, new {id = id});
+            var result = await connection.QueryFirstOrDefaultAsync<Members>(cmd, new { id = id });
             return result;
         }
     }
@@ -74,12 +74,42 @@ public class MemberService : IMemberService
             connection.Open();
 
             string cmd = $@"Delete from Members Where id = @id";
-            var result = await connection.ExecuteAsync(cmd, new {id = id});
+            var result = await connection.ExecuteAsync(cmd, new { id = id });
             if (result > 0)
             {
                 return "Deleted Member successfully";
             }
             return "Deleted Member not successfully";
+        }
+    }
+
+    public async Task<Members?> GetMemberTakeMaxBookAsync()
+    {
+        using (var connection = await context.GetConnectionAsync())
+        {
+            connection.Open();
+
+            string cmd = @"Select m.Id, m.FullName, count(b.Id) as TotalBorrowing 
+                        from Members as m
+                        JOIN Borrowings as b ON m.Id = b.MemberId
+						Group by m.Id, m.FullName
+                        Order by TotalBorrowing desc Limit 1";
+            var result = await connection.QuerySingleOrDefaultAsync<Members>(cmd);
+            return result;
+        }
+    }
+
+    public async Task<int> GetCountMemberOneBorrowingsAsync()
+    {
+        using (var connection = await context.GetConnectionAsync())
+        {
+            connection.Open();
+
+            string cmd = @"Select count(*) from Members 
+                        where id = (
+                        Select memberId from Borrowings)";
+            var result = await connection.ExecuteScalarAsync<int>(cmd);
+            return result;
         }
     }
 }
