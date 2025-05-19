@@ -13,4 +13,5 @@ public interface IBookService
     public Task<List<Books>> GetAllBooksReturnDateIsNullAsync();
     public Task<List<Books>> GetBooksOneCountAvailableCopiesAsync();
     public Task<int> GetCountIdOneAsync();
+    public Task<Books?> GetBookMaxGenreAsync();
 }

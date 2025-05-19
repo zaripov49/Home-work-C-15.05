@@ -6,10 +6,8 @@ namespace WebAPi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MemberController
+public class MemberController(MemberService memberService)
 {
-    private MemberService memberService = new MemberService();
-
     [HttpPost]
     public async Task<string> CreateMemberAsync(Members members)
     {
@@ -43,5 +41,17 @@ public class MemberController
     {
         var result = await memberService.DeleteMemberAsync(id);
         return result;
+    }
+
+    [HttpGet("GetMemberTakeMaxBook")]
+    public async Task<Members?> GetMemberTakeMaxBookAsync()
+    {
+        return await memberService.GetMemberTakeMaxBookAsync();
+    }
+
+    [HttpGet("GetCountMemberOneBorrowings")]
+    public async Task<int> GetCountMemberOneBorrowingsAsync()
+    {
+        return await memberService.GetCountMemberOneBorrowingsAsync();
     }
 }

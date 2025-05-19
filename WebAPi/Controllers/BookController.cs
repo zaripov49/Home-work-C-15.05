@@ -6,10 +6,8 @@ namespace WebAPi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class BookController
+public class BookController(BookService bookService)
 {
-    private BookService bookService = new BookService();
-
     [HttpPost]
     public async Task<string> CreateBookAsync(Books books)
     {
@@ -43,5 +41,35 @@ public class BookController
     {
         var result = await bookService.DeleteBookAsync(id);
         return result;
+    }
+
+    [HttpGet("GetBookMaxCountAvailableCopies")]
+    public async Task<Books?> GetBookMaxCountAvailableCopiesAsync()
+    {
+        return await bookService.GetBookMaxCountAvailableCopiesAsync();
+    }
+
+    [HttpGet("GetAllBooksReturnDateIsNull")]
+    public async Task<List<Books>> GetAllBooksReturnDateIsNullAsync()
+    {
+        return await bookService.GetAllBooksReturnDateIsNullAsync();
+    }
+
+    [HttpGet("GetBooksOneCountAvailableCopies")]
+    public async Task<List<Books>> GetBooksOneCountAvailableCopiesAsync()
+    {
+        return await bookService.GetBooksOneCountAvailableCopiesAsync();
+    }
+
+    [HttpGet("GetCountIdOne")]
+    public async Task<int> GetCountIdOneAsync()
+    {
+        return await bookService.GetCountIdOneAsync();
+    }
+
+    [HttpGet("GetBookMaxGenre")]
+    public async Task<Books?> GetBookMaxGenreAsync()
+    {
+        return await bookService.GetBookMaxGenreAsync();
     }
 }

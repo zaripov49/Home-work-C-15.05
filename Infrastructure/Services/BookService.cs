@@ -5,10 +5,8 @@ using Infrastructure.Interfaces;
 
 namespace Infrastructure.Services;
 
-public class BookService : IBookService
+public class BookService(DataContext context) : IBookService
 {
-    private readonly DataContext context = new DataContext();
-
     public async Task<string> CreatBookAsync(Books books)
     {
         using (var connection = await context.GetConnectionAsync())
@@ -131,6 +129,22 @@ public class BookService : IBookService
                             where id not in (
 	                        select BookId from Borrowings)";
             var result = await connection.ExecuteScalarAsync<int>(cmd);
+            return result;
+        }
+    }
+
+    public async Task<Books?> GetBookMaxGenreAsync()
+    {
+        using (var connection = await context.GetConnectionAsync())
+        {
+            connection.Open();
+
+            string cmd = @"Select Genre, count(*) from Books 
+                            Group by Genre 
+                            Having count(Genre) = (
+	                        select count(Genre) as genre from Books
+	                        order by genre desc Limit 1)";
+            var result = await connection.QuerySingleOrDefaultAsync<Books>(cmd);
             return result;
         }
     }

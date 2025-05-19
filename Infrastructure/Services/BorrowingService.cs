@@ -5,10 +5,8 @@ using Infrastructure.Interfaces;
 
 namespace Infrastructure.Services;
 
-public class BorrowingService : IBorrowingService
+public class BorrowingService(DataContext context) : IBorrowingService
 {
-    private DataContext context = new DataContext();
-
     public async Task<List<Borrowings>> GetAllBorrowingsAsync()
     {
         using (var connection = await context.GetConnectionAsync())

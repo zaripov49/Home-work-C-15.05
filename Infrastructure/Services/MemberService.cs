@@ -5,10 +5,8 @@ using Infrastructure.Interfaces;
 
 namespace Infrastructure.Services;
 
-public class MemberService : IMemberService
+public class MemberService(DataContext context) : IMemberService
 {
-    private readonly DataContext context = new DataContext();
-
     public async Task<string> CreatMemberAsync(Members members)
     {
         using (var connection = await context.GetConnectionAsync())
