@@ -1,4 +1,5 @@
 using Dapper;
+using Domain.ApiResponse;
 using Domain.Entities;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
@@ -7,7 +8,7 @@ namespace Infrastructure.Services;
 
 public class MemberService(DataContext context) : IMemberService
 {
-    public async Task<string> CreatMemberAsync(Members members)
+    public async Task<Response<string>> CreatMemberAsync(Members members)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -16,15 +17,15 @@ public class MemberService(DataContext context) : IMemberService
             string cmd = $@"INSERT INTO Members (fullName, phone, email, membershipDate)
                             VALUES (@fullName, @phone, @email, @membershipDate);";
             var result = await connection.ExecuteAsync(cmd, members);
-            if (result > 0)
+            if (result == 0)
             {
-                return "Created Member successfully";
+                return new Response<string>("Some thing went wrong", System.Net.HttpStatusCode.InternalServerError);
             }
-            return "Created Member not successfully";
+            return new Response<string>(null, "Book successfully created");
         }
     }
 
-    public async Task<List<Members>> GetAllMembersAsync()
+    public async Task<Response<List<Members>>> GetAllMembersAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -32,11 +33,11 @@ public class MemberService(DataContext context) : IMemberService
 
             string cmd = $@"Select * from Members";
             var result = await connection.QueryAsync<Members>(cmd);
-            return result.ToList();
+            return new Response<List<Members>>(result.ToList(), "Successfuly");
         }
     }
 
-    public async Task<Members?> GetMemberAsync(int id)
+    public async Task<Response<Members?>> GetMemberAsync(int id)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -44,11 +45,11 @@ public class MemberService(DataContext context) : IMemberService
 
             string cmd = $@"Select * from Members Where id = @id";
             var result = await connection.QueryFirstOrDefaultAsync<Members>(cmd, new { id = id });
-            return result;
+            return new Response<Members?>(result, "Successfully");
         }
     }
 
-    public async Task<string> UpdateMemberAsync(Members members)
+    public async Task<Response<string>> UpdateMemberAsync(Members members)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -59,13 +60,13 @@ public class MemberService(DataContext context) : IMemberService
             var result = await connection.ExecuteAsync(cmd, members);
             if (result > 0)
             {
-                return "Updated Member successfully";
+                return new Response<string>("Updated Member successfully", System.Net.HttpStatusCode.NotFound);
             }
-            return "Updated Member not successfully";
+            return new Response<string>(null, "Updated Member not successfully");
         }
     }
 
-    public async Task<string> DeleteMemberAsync(int id)
+    public async Task<Response<string>> DeleteMemberAsync(int id)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -75,13 +76,13 @@ public class MemberService(DataContext context) : IMemberService
             var result = await connection.ExecuteAsync(cmd, new { id = id });
             if (result > 0)
             {
-                return "Deleted Member successfully";
+                return new Response<string>("Deleted Member successfully", System.Net.HttpStatusCode.NotFound);
             }
-            return "Deleted Member not successfully";
+            return new Response<string>(null, "Deleted Member not successfully");
         }
     }
 
-    public async Task<Members?> GetMemberTakeMaxBookAsync()
+    public async Task<Response<Members?>> GetMemberTakeMaxBookAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -93,11 +94,11 @@ public class MemberService(DataContext context) : IMemberService
 						Group by m.Id, m.FullName
                         Order by TotalBorrowing desc Limit 1";
             var result = await connection.QuerySingleOrDefaultAsync<Members>(cmd);
-            return result;
+            return new Response<Members?>(result, "Successfuly");
         }
     }
 
-    public async Task<int> GetCountMemberOneBorrowingsAsync()
+    public async Task<Response<int>> GetCountMemberOneBorrowingsAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -107,7 +108,7 @@ public class MemberService(DataContext context) : IMemberService
                         where id = (
                         Select memberId from Borrowings)";
             var result = await connection.ExecuteScalarAsync<int>(cmd);
-            return result;
+            return new Response<int>(result, "Successfully");
         }
     }
 }

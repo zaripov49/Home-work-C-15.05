@@ -1,4 +1,6 @@
+using System.Net;
 using Dapper;
+using Domain.ApiResponse;
 using Domain.Entities;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
@@ -7,7 +9,7 @@ namespace Infrastructure.Services;
 
 public class BookService(DataContext context) : IBookService
 {
-    public async Task<string> CreatBookAsync(Books books)
+    public async Task<Response<string>> CreatBookAsync(Books books)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -16,15 +18,15 @@ public class BookService(DataContext context) : IBookService
             string cmd = $@"INSERT INTO Books (Title, Genre, PublicationYear, TotalCopies, AvailableCopies)
                             VALUES (@Title, @Genre, @PublicationYear, @TotalCopies, @AvailableCopies);";
             var result = await connection.ExecuteAsync(cmd, books);
-            if (result > 0)
+            if (result == 0)
             {
-                return "Created Book successfully";
+                return new Response<string>("Some thing went wrong", HttpStatusCode.InternalServerError);
             }
-            return "Created Book not successfully";
+            return new Response<string>(null, "Book successfully created");
         }
     }
 
-    public async Task<List<Books>> GetAllBooksAsync()
+    public async Task<Response<List<Books>>> GetAllBooksAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -32,11 +34,11 @@ public class BookService(DataContext context) : IBookService
 
             string cmd = $@"Select * from Books";
             var result = await connection.QueryAsync<Books>(cmd);
-            return result.ToList();
+            return new Response<List<Books>>(result.ToList(), "Books retrieved successfuly");
         }
     }
 
-    public async Task<Books?> GetBookAsync(int id)
+    public async Task<Response<Books?>> GetBookAsync(int id)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -44,11 +46,15 @@ public class BookService(DataContext context) : IBookService
 
             string cmd = $@"Select * from Books Where id = @id";
             var result = await connection.QueryFirstOrDefaultAsync<Books>(cmd, new { id = id });
-            return result;
+            if (result == null)
+            {
+                return new Response<Books?>("Book not found", HttpStatusCode.NotFound);
+            }
+            return new Response<Books?>(result, "Book successfully retrieved");
         }
     }
 
-    public async Task<string> UpdateBookAsync(Books books)
+    public async Task<Response<string>> UpdateBookAsync(Books books)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -57,15 +63,15 @@ public class BookService(DataContext context) : IBookService
             string cmd = $@"Update Books set 
                         title = @title, genre = @genre, publicationYear = @publicationYear, totalCopies = @totalCopies, availableCopies = @availableCopies";
             var result = await connection.ExecuteAsync(cmd, books);
-            if (result > 0)
+            if (result == 0)
             {
-                return "Updated Book successfully";
+                return new Response<string>("Some thing went wrong", HttpStatusCode.InternalServerError);
             }
-            return "Updated Book not successfully";
+            return new Response<string>(null, "Book successfully updated");
         }
     }
 
-    public async Task<string> DeleteBookAsync(int id)
+    public async Task<Response<string>> DeleteBookAsync(int id)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -73,15 +79,15 @@ public class BookService(DataContext context) : IBookService
 
             string cmd = $@"Delete from Books Where id = @id";
             var result = await connection.ExecuteAsync(cmd, new { id = id });
-            if (result > 0)
+            if (result == 0)
             {
-                return "Deleted Book successfully";
+                return new Response<string>("Some thing went wrong", HttpStatusCode.InternalServerError);
             }
-            return "Deleted Book not successfully";
+            return new Response<string>(null, "Book successfully deleted");
         }
     }
 
-    public async Task<Books?> GetBookMaxCountAvailableCopiesAsync()
+    public async Task<Response<Books?>> GetBookMaxCountAvailableCopiesAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -89,11 +95,11 @@ public class BookService(DataContext context) : IBookService
 
             string cmd = "Select * from Books Order By AvailableCopies desc Limit 1";
             var result = await connection.QuerySingleOrDefaultAsync<Books>(cmd);
-            return result;
+            return new Response<Books?>(result, "Successfully");
         }
     }
 
-    public async Task<List<Books>> GetAllBooksReturnDateIsNullAsync()
+    public async Task<Response<List<Books>>> GetAllBooksReturnDateIsNullAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -103,11 +109,11 @@ public class BookService(DataContext context) : IBookService
                         Join Borrowings br on b.id = br.BookId
                         Where ReturnDate is null";
             var result = await connection.QueryAsync<Books>(cmd);
-            return result.ToList();
+            return new Response<List<Books>>(result.ToList(), "Successfuly");
         }
     }
 
-    public async Task<List<Books>> GetBooksOneCountAvailableCopiesAsync()
+    public async Task<Response<List<Books>>> GetBooksOneCountAvailableCopiesAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -115,11 +121,11 @@ public class BookService(DataContext context) : IBookService
 
             string cmd = @"Select * from Books Where TotalCopies < 2";
             var result = await connection.QueryAsync<Books>(cmd);
-            return result.ToList();
+            return new Response<List<Books>>(result.ToList(), "Successfuly");
         }
     }
 
-    public async Task<int> GetCountIdOneAsync()
+    public async Task<Response<int>> GetCountIdOneAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -129,11 +135,11 @@ public class BookService(DataContext context) : IBookService
                             where id not in (
 	                        select BookId from Borrowings)";
             var result = await connection.ExecuteScalarAsync<int>(cmd);
-            return result;
+            return new Response<int>(result, "Successfuly");
         }
     }
 
-    public async Task<Books?> GetBookMaxGenreAsync()
+    public async Task<Response<Books?>> GetBookMaxGenreAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -145,7 +151,7 @@ public class BookService(DataContext context) : IBookService
 	                        select count(Genre) as genre from Books
 	                        order by genre desc Limit 1)";
             var result = await connection.QuerySingleOrDefaultAsync<Books>(cmd);
-            return result;
+            return new Response<Books?>(result, "Succesfuly");
         }
     }
 }

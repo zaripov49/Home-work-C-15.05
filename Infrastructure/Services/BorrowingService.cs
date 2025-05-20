@@ -1,4 +1,6 @@
+using System.Net;
 using Dapper;
+using Domain.ApiResponse;
 using Domain.Entities;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
@@ -7,7 +9,7 @@ namespace Infrastructure.Services;
 
 public class BorrowingService(DataContext context) : IBorrowingService
 {
-    public async Task<List<Borrowings>> GetAllBorrowingsAsync()
+    public async Task<Response<List<Borrowings>>> GetAllBorrowingsAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -15,11 +17,11 @@ public class BorrowingService(DataContext context) : IBorrowingService
 
             string cmd = $@"Select * from Borrowings";
             var result = await connection.QueryAsync<Borrowings>(cmd);
-            return result.ToList();
+            return new Response<List<Borrowings>>(result.ToList(), "Successfully");
         }
     }
 
-    public async Task<Borrowings?> GetBorrowingByMemberId(int memberId)
+    public async Task<Response<Borrowings?>> GetBorrowingByMemberId(int memberId)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -27,11 +29,11 @@ public class BorrowingService(DataContext context) : IBorrowingService
 
             string cmd = $@"Select * from Borrowings Where memberId = @memberId";
             var result = await connection.QueryFirstOrDefaultAsync<Borrowings>(cmd, new { memberId = memberId });
-            return result;
+            return new Response<Borrowings?>(result, "Successfuly");
         }
     }
 
-    public async Task<string> CreateBorrowingAsync(Borrowings borrowings)
+    public async Task<Response<string>> CreateBorrowingAsync(Borrowings borrowings)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -41,17 +43,17 @@ public class BorrowingService(DataContext context) : IBorrowingService
             var book = await connection.QueryFirstOrDefaultAsync<Books>(bookCommand, new { id = borrowings.BookId });
             if (book == null)
             {
-                return "Book not found";
+                return new Response<string>("Book not found", HttpStatusCode.NotFound);
             }
 
             if (book.AvailableCopies <= 0)
             {
-                return "Kniga v daniy moment ne svobodnyi";
+                return new Response<string>("Kniga v daniy moment ne svobodnyi", HttpStatusCode.NotFound);
             }
 
             if (borrowings.BorrowDate >= borrowings.DueDate)
             {
-                return "data выдачи книг не может быть позже даты обратно вырнуть";
+                return new Response<string>("data выдачи книг не может быть позже даты обратно вырнуть", HttpStatusCode.NotFound);
             }
 
             string borrowingCommand = $@"Insert into Borrowings(bookId, memberId, borrowDate, dueDate) values (@bookId, @memberId, @borrowDate, @dueDate)";
@@ -59,17 +61,17 @@ public class BorrowingService(DataContext context) : IBorrowingService
 
             if (result == 0)
             {
-                return "Borrowing not created";
+                return new Response<string>("Borrowing not created", HttpStatusCode.NotFound);
             }
 
             var updateBookCommand = "Update books set availableCopies = availableCopies - 1 where id = @id";
             await connection.ExecuteAsync(updateBookCommand, new { id = borrowings.BookId });
 
-            return "Borrowing created";
+            return new Response<string>(null, "Borrowing created");
         }
     }
 
-    public async Task<string> ReturnBookAsync(int borrowingId)
+    public async Task<Response<string>> ReturnBookAsync(int borrowingId)
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -79,7 +81,7 @@ public class BorrowingService(DataContext context) : IBorrowingService
             var borrowing = await connection.QueryFirstOrDefaultAsync<Borrowings>(borrowingCommand, new { id = borrowingId });
             if (borrowing == null)
             {
-                return "Borrowing not found";
+                return new Response<string>("Borrowing not found", HttpStatusCode.NotFound);
             }
             borrowing.ReturnDate = DateTime.Now;
             if (borrowing.ReturnDate > borrowing.DueDate)
@@ -92,16 +94,16 @@ public class BorrowingService(DataContext context) : IBorrowingService
             var result = await connection.ExecuteAsync(updateBorrowingCommand, borrowing);
             if (result == 0)
             {
-                return "Borrowing not updated";
+                return new Response<string>("Borrowing not updated", HttpStatusCode.NotFound);
             }
 
             string updateBooksCommand = "Update Book Set AvailableCopies = AvailableCopies + 1 where id = @id";
             await connection.ExecuteAsync(updateBooksCommand, new { id = borrowing.BookId });
-            return "Borrowing uptadet";
+            return new Response<string>(null, "Borrowing uptadet");
         }
     }
 
-    public async Task<int> GetCountAllBorrowingAsync()
+    public async Task<Response<int>> GetCountAllBorrowingAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -109,11 +111,11 @@ public class BorrowingService(DataContext context) : IBorrowingService
 
             string cmd = "Select count(*) from Borrowings";
             var result = await connection.ExecuteScalarAsync<int>(cmd);
-            return result;
+            return new Response<int>(result, "Successfuly");
         }
     }
 
-    public async Task<decimal> GetAvgFineAsync()
+    public async Task<Response<decimal>> GetAvgFineAsync()
     {
         using (var connection = await context.GetConnectionAsync())
         {
@@ -122,7 +124,7 @@ public class BorrowingService(DataContext context) : IBorrowingService
 
             string cmd = "Select avg(Fine) from Borrowings";
             var result = await connection.ExecuteScalarAsync<decimal>(cmd);
-            return result;
+            return new Response<decimal>(result, "Successfuly");
         }
     }
 
